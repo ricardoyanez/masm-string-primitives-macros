@@ -219,5 +219,120 @@ _continue:
   RET 4
 ReadVal ENDP
 
+WriteVal PROC
+  LOCAL numcnt:DWORD
+
+  PUSH EAX						; preserve register
+  PUSH EBX
+  PUSH ECX
+  PUSH EDX
+
+  MOV ESI, [EBP+8]				; address to numbers array
+  MOV numcnt, 0					; set number counter
+
+  CALL CrLf
+  mDisplayText 'You entered the following numbers:'
+  CALL CrLf
+
+_next_number:
+
+  MOV EDI, OFFSET buffer
+
+  ;--------------------------------------
+  ; if negative, flip the sign and insert
+  ; a - character at the beginning
+  ;--------------------------------------
+  MOV EAX, [ESI]
+  MOV ECX, 0
+  CMP EAX, 0
+  JNS _non_negative
+  NEG EAX
+  PUSH EAX
+  MOV EAX, 2Dh
+  STOSB
+  POP EAX
+
+_non_negative:
+  PUSH EAX
+  ;-----------------------------
+  ; get the length of the number
+  ; by counting powers of 10
+  ;-----------------------------
+_get_len:
+  MOV EDX, 0
+  MOV EBX, 10
+  CDQ
+  IDIV EBX
+  INC ECX
+  CMP EAX, 0
+  JNZ _get_len
+
+  ; when here, ECX holds the length
+    POP EAX
+
+  ;-------------------------------------------
+  ; store digits in string backwards
+  ; starting from position given by the length
+  ;-------------------------------------------
+  ADD EDI, ECX
+  STD
+
+  ; add NULL termination
+  PUSH EAX
+  MOV EAX, 0
+  STOSB
+  POP EAX
+
+  ;----------------------------------
+  ; parse the number by powers of 10,
+  ; convert digit to ASCII and store
+  ;----------------------------------
+_parse:
+
+  ; divide number by 10
+  MOV EDX, 0
+  MOV EBX, 10
+  CDQ
+  IDIV EBX
+
+  ; the remainder is the digit
+  ; convert to ASCII
+  ADD EDX, 30h
+
+  ; store ASCII value to string
+  PUSH EAX
+  MOV EAX, EDX
+  STOSB
+  POP EAX
+
+  CMP EAX, 0
+  JNZ _parse
+
+  mDisplayString buffer
+
+  ; point to next element
+  ADD ESI, SIZEOF SDWORD
+
+  ; increment number counter
+  INC numcnt
+  CMP numcnt, MAXNUM
+
+  ;---------------------
+  ; print separator, and
+  ; skip the last one
+  ;---------------------
+  JZ _skip
+  mDisplayText ', '
+_skip:
+
+  JNZ _next_number
+
+  POP EDX						; restore registers
+  POP ECX
+  POP EBX
+  POP EAX
+
+  RET 4
+WriteVal ENDP
 
 END main
