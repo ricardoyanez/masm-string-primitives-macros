@@ -197,7 +197,8 @@ introduction ENDP
 ;                                                   ;
 ; Postconditions: all used registers restored       ;
 ;                                                   ;
-; Receives: buffer is a global variable             ;
+; Receives: [EBP+8]   address to number variable    ;
+;                     buffer is a global variable   ;
 ;                                                   ;
 ; Returns: number     the converted number          ;
 ;---------------------------------------------------;
@@ -321,6 +322,19 @@ _continue:
   RET 4
 ReadVal ENDP
 
+;---------------------------------------------------;
+; Name: WriteVal                                    ;
+;                                                   ;
+; Converts numeric values to a string and prints    ;
+;                                                   ;
+; Preconditions: none                               ;
+;                                                   ;
+; Postconditions: all used registers restored       ;
+;                                                   ;
+; Receives: [EBP+8]   array of numbers              ;
+;                                                   ;
+; Returns: none                                     ;
+;---------------------------------------------------;
 WriteVal PROC
   LOCAL numcnt:DWORD
 
@@ -328,6 +342,7 @@ WriteVal PROC
   PUSH EBX
   PUSH ECX
   PUSH EDX
+  PUSH ESI
 
   MOV ESI, [EBP+8]				; address to numbers array
   MOV numcnt, 0					; set number counter
@@ -340,10 +355,10 @@ _next_number:
 
   MOV EDI, OFFSET buffer
 
-  ;--------------------------------------
-  ; if negative, flip the sign and insert
-  ; a - character at the beginning
-  ;--------------------------------------
+  ;----------------------------------------
+  ; if negative, flip the sign and insert a
+  ; - character at the beginning of string
+  -----------------------------------------
   MOV EAX, [ESI]
   MOV ECX, 0
   CMP EAX, 0
@@ -429,14 +444,14 @@ _skip:
 
   JNZ _next_number
 
-  POP EDX						; restore registers
+  POP ESI						; restore registers
+  POP EDX
   POP ECX
   POP EBX
   POP EAX
 
   RET 4
 WriteVal ENDP
-
 
 SumVal PROC
   PUSH EBP
