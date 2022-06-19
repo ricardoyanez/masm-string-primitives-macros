@@ -1,12 +1,12 @@
-TITLE Program Template     (template.asm)
+TITLE Sring Primitives and Macros     (Proj6_yanezr.asm)
 
 ; Author: Ricardo Yanez
 ; Last Modified: 06/16/2022
 ; OSU email address: yanezr@oregonstate.edu
-; Course number/section:   CS271 Section 404
-; Project Number: 6        Due Date: 06/26/2022
-; Description: This file is provided as a template from which you may work
-;              when developing assembly projects in CS271.
+; Course number/section: CS271 Section 404
+; Project Number: 6    Due Date: 06/26/2022
+; Description: Designing low-level procedures to read a string containing digits,
+;              validate, convert to signed integer and display.
 
 INCLUDE Irvine32.inc
 
@@ -55,6 +55,8 @@ mDisplayText MACRO text
   POP EDX
 ENDM
 
+
+
 .data
 
   greeting		BYTE	"PROGRAMMING ASSIGNMENT 6: Designing low-level I/O procedures",10,13,
@@ -66,6 +68,8 @@ ENDM
 
   buffer		BYTE	MAXSIZE DUP(0)
   numbers		SDWORD	MAXNUM DUP(?)
+  sum			SDWORD	?
+  ave			SDWORD	?
 
 .code
 main PROC
@@ -76,6 +80,19 @@ main PROC
 
   PUSH OFFSET numbers
   CALL ReadVal
+
+  PUSH OFFSET numbers
+  CALL WriteVal
+
+  PUSH OFFSET sum
+  PUSH OFFSET numbers
+  CALL SumVal
+
+  PUSH OFFSET ave
+  PUSH OFFSET sum
+  CALL AveVal
+
+  CALL endCredits
 
   Invoke ExitProcess,0	; exit to operating system
 main ENDP
@@ -334,5 +351,96 @@ _skip:
 
   RET 4
 WriteVal ENDP
+
+
+SumVal PROC
+  PUSH EBP
+  MOV EBP, ESP
+
+  PUSH EAX						; preserve register
+  PUSH ECX
+
+  MOV ESI, [EBP+8]				; address of numbers array
+  MOV ECX, MAXNUM				; size of array
+  MOV EAX, 0					; reset accumulator
+
+  ;---------------
+  ; sum all values
+  ;---------------
+_loop:
+  ADD EAX, [ESI]
+  ADD ESI, SIZEOF SDWORD
+  LOOP _loop
+
+  ;-----------------------------
+  ; store sum in return variable
+  ;-----------------------------
+  MOV EDI, [EBP+12]
+  MOV [EDI], EAX
+
+  ;------------
+  ; display sum
+  ;------------
+  CALL CrLf
+  mDisplayText 'The sum of these numbers is: '
+  CALL WriteInt
+
+  POP ECX						; restore registers
+  POP EAX
+
+  POP EBP
+
+  RET 8
+SumVal ENDP
+
+AveVal PROC
+  PUSH EBP
+  MOV EBP, ESP
+
+  PUSH EAX						; preserve register
+  PUSH EBX
+  PUSH EDX
+
+  MOV ESI, [EBP+8]				; address of sum
+  MOV EAX, [ESI]
+
+  ;----------------------------
+  ; calculate truncated average
+  ;----------------------------
+  MOV EDX, 0
+  MOV EBX, MAXNUM
+  CDQ
+  IDIV EBX
+
+  ;---------------------------------
+  ; store average in return variable
+  ;---------------------------------
+  MOV EDI, [EBP+12]
+  MOV [EDI], EAX
+
+  ;----------------
+  ; display average
+  ;----------------
+  CALL CrLf
+  mDisplayText 'The truncated average is: '
+  CALL WriteInt
+  CALL CrLf
+
+  POP EDX						; restore registers
+  POP EBX
+  POP EAX
+
+  POP EBP
+
+  RET 8
+AveVal ENDP
+
+
+endCredits PROC
+  CALL CrLf
+  mDisplayText 'Thanks for playing!'
+  CALL CrLf
+  RET
+endCredits ENDP
 
 END main
