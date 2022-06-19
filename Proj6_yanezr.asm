@@ -174,6 +174,20 @@ introduction PROC
   RET 8
 introduction ENDP
 
+;---------------------------------------------------;
+; Name: ReadVal                                     ;
+;                                                   ;
+; Read strings of digits and convert to numeric     ;
+; values.                                           ;
+;                                                   ;
+; Preconditions: MAXNUM constant defined            ;
+;                                                   ;
+; Postconditions: all used registers restored       ;
+;                                                   ;
+; Receives: buffer is a global variable             ;
+;                                                   ;
+; Returns: numbers    array with numbers            ;
+;---------------------------------------------------;
 ReadVal PROC
   LOCAL byteCount:DWORD, pow:DWORD, num:SDWORD, numcnt:DWORD
 
@@ -204,9 +218,13 @@ _start_over:
   ; reset accumulator
   MOV num, 0
 
+  ;------------------------------------------
+  ; parse the string byte by byte, check that
+  ; byte is a digit and convert to ASCII
+  ;------------------------------------------
 _parse:
 
-  ; load byte
+  ; load a byte
   LODSB
 
   ; compare digit to a '0'
@@ -237,6 +255,10 @@ _parse:
   ; here we have a valid positive number
   JMP _continue
 
+  ;-------------------------------------
+  ; if a non-digit is found, chech if it
+  ; is a + or - sign
+  ;-------------------------------------
 _not_digit:
 
   ; only the first element of the string can be a + or -
@@ -252,10 +274,11 @@ _not_digit:
   CMP AL, 2Dh
   JZ _continue
 
+  ;-----------------------------------
   ; if here, sting is not a number
+  ; display error and get a new string
+  ;-----------------------------------
 _not_number:
-
-  ; prompt error and enter a new value
   mDisplayText "ERROR: You did not enter a signed number or your number was too big."
   CALL CrLf
   mGetString "Please try again: ", buffer, byteCount
