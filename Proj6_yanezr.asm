@@ -106,6 +106,7 @@ ENDM
 						"After you have finished inputting the raw numbers I will display a list ",
 						"of the integers, their sum, and their average value.",0
   buffer		BYTE	MAXSIZE DUP(0)
+  number		SDWORD	?
   numbers		SDWORD	MAXNUM DUP(?)
   sum			SDWORD	?
   ave			SDWORD	?
@@ -118,8 +119,20 @@ main PROC
   PUSH OFFSET greeting
   CALL introduction
 
-  PUSH OFFSET numbers
+  ;------------------------------------------
+  ; as per instruction, ReadVal is called in
+  ; a loop within main, and the numeric value
+  ; is save in array (numbers)
+  ;------------------------------------------
+  MOV EDI, OFFSET numbers
+  MOV ECX, MAXNUM
+_loop:
+  PUSH OFFSET number
   CALL ReadVal
+  MOV EAX, number
+  MOV [EDI], EAX
+  ADD EDI, SIZEOF SDWORD
+  LOOP _loop
 
   PUSH OFFSET numbers
   CALL WriteVal
@@ -177,29 +190,27 @@ introduction ENDP
 ;---------------------------------------------------;
 ; Name: ReadVal                                     ;
 ;                                                   ;
-; Read strings of digits and convert to numeric     ;
-; values.                                           ;
+; Reads a string of digits and converts to a        ;
+; numeric value.                                    ;
 ;                                                   ;
-; Preconditions: MAXNUM constant defined            ;
+; Preconditions: none                               ;
 ;                                                   ;
 ; Postconditions: all used registers restored       ;
 ;                                                   ;
 ; Receives: buffer is a global variable             ;
 ;                                                   ;
-; Returns: numbers    array with numbers            ;
+; Returns: number     the converted number          ;
 ;---------------------------------------------------;
 ReadVal PROC
-  LOCAL byteCount:DWORD, pow:DWORD, num:SDWORD, numcnt:DWORD
+  LOCAL byteCount:DWORD, pow:DWORD, num:SDWORD
 
   PUSH EAX						; preserve register
   PUSH EBX
   PUSH ECX
   PUSH EDX
+  PUSH EDI
 
-  MOV EDI, [EBP+8]				; address of numbers array
-  MOV numcnt, 0					; set number counter
-
-_next_number:
+  MOV EDI, [EBP+8]				; address of number
 
   mGetString "Please enter a signed number: ", buffer, byteCount
 
@@ -297,16 +308,12 @@ _continue:
   IDIV EBX
   JO _not_number
 
-  ; store number in array
+  ; store number in variable
   MOV [EDI], EAX
   ADD EDI, SIZEOF SDWORD
 
-  ; increment number counter and loop to next number
-  INC numcnt
-  CMP numcnt, MAXNUM
-  JNZ _next_number
-
-  POP EDX						; restore registers
+  POP EDI					; restore registers
+  POP EDX
   POP ECX
   POP EBX
   POP EAX
@@ -363,7 +370,7 @@ _get_len:
   JNZ _get_len
 
   ; when here, ECX holds the length
-    POP EAX
+  POP EAX
 
   ;-------------------------------------------
   ; store digits in string backwards
