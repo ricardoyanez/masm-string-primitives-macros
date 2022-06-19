@@ -12,11 +12,26 @@ INCLUDE Irvine32.inc
 
 MAXNUM = 3
 
-; A 32-bit sign integer has at most 10 decimal digits, add one 
+; A 32-bit sign integer has at most 10 decimal digits, add one
 ; for the sign, add one for NULL termination of a string
 MAXSIZE = 12
 
-mGetString MACRO text, count, string
+;---------------------------------------------------;
+; Name: mGetString                                  ;
+;                                                   ;
+; Display a prompt and get a user-supplied string   ;
+;                                                   ;
+; Preconditions: do not use ECX, EDX as arguments   ;
+;                                                   ;
+; Postconditions: all used registers restored       ;
+;                                                   ;
+; Receives: text      prompt text                   ;
+;           string    string variable               ;
+;           count     size of string                ;
+;                                                   ;
+; Returns: string, size of string                   ;
+;---------------------------------------------------;
+mGetString MACRO text, string, count
   LOCAL prompt
   .data
   prompt BYTE text, 0
@@ -35,6 +50,19 @@ mGetString MACRO text, count, string
   POP EDX
 ENDM
 
+;---------------------------------------------------;
+; Name: mDisplayString                              ;
+;                                                   ;
+; Display a string                                  ;
+;                                                   ;
+; Preconditions: do not use EDX as argument         ;
+;                                                   ;
+; Postconditions: all used registers restored       ;
+;                                                   ;
+; Receives: string    string variable               ;
+;                                                   ;
+; Returns: none                                     ;
+;---------------------------------------------------;
 mDisplayString MACRO string
   PUSH EDX
   ; display string
@@ -43,6 +71,19 @@ mDisplayString MACRO string
   POP EDX
 ENDM
 
+;---------------------------------------------------;
+; Name: mDisplayText                                ;
+;                                                   ;
+; Display a text                                    ;
+;                                                   ;
+; Preconditions: do not use EDX as argument         ;
+;                                                   ;
+; Postconditions: all used registers restored       ;
+;                                                   ;
+; Receives: text      text string                   ;
+;                                                   ;
+; Returns: none                                     ;
+;---------------------------------------------------;
 mDisplayText MACRO text
   LOCAL string
   .data
@@ -60,7 +101,7 @@ ENDM
 
   greeting		BYTE	"PROGRAMMING ASSIGNMENT 6: Designing low-level I/O procedures",10,13,
 						"Written by: Ricardo Yanez",0
-  prompt1		BYTE	"Please provide 10 signed decimal integers.",10,13,
+  instruction	BYTE	"Please provide 10 signed decimal integers.",10,13,
 						"Each number needs to be small enough to fit inside a 32 bit register. ",
 						"After you have finished inputting the raw numbers I will display a list ",
 						"of the integers, their sum, and their average value.",0
@@ -73,7 +114,7 @@ ENDM
 .code
 main PROC
 
-  PUSH OFFSET prompt1
+  PUSH OFFSET instruction
   PUSH OFFSET greeting
   CALL introduction
 
@@ -96,6 +137,21 @@ main PROC
   Invoke ExitProcess,0	; exit to operating system
 main ENDP
 
+
+;---------------------------------------------------;
+; Name: introduction                                ;
+;                                                   ;
+; Display program title and instructions.           ;
+;                                                   ;
+; Preconditions: none                               ;
+;                                                   ;
+; Postconditions: all used registers restored       ;
+;                                                   ;
+; Receives: [EBP+8]   program greeting              ;
+;           [EBP+12]  program introductions         ;
+;                                                   ;
+; Returns: none                                     ;
+;---------------------------------------------------;
 introduction PROC
   PUSH EBP
   MOV EBP, ESP
@@ -131,7 +187,7 @@ ReadVal PROC
 
 _next_number:
 
-  mGetString "Please enter a signed number: ", byteCount, buffer
+  mGetString "Please enter a signed number: ", buffer, byteCount
 
 _start_over:
 
@@ -202,7 +258,7 @@ _not_number:
   ; prompt error and enter a new value
   mDisplayText "ERROR: You did not enter a signed number or your number was too big."
   CALL CrLf
-  mGetString "Please try again: ", byteCount, buffer
+  mGetString "Please try again: ", buffer, byteCount
   JMP _start_over
 
   ; if here, a number
