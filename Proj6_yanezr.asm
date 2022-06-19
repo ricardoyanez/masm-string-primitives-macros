@@ -1,7 +1,7 @@
 TITLE Sring Primitives and Macros     (Proj6_yanezr.asm)
 
 ; Author: Ricardo Yanez
-; Last Modified: 06/16/2022
+; Last Modified: 06/19/2022
 ; OSU email address: yanezr@oregonstate.edu
 ; Course number/section: CS271 Section 404
 ; Project Number: 6    Due Date: 06/26/2022
@@ -56,7 +56,6 @@ mDisplayText MACRO text
 ENDM
 
 
-
 .data
 
   greeting		BYTE	"PROGRAMMING ASSIGNMENT 6: Designing low-level I/O procedures",10,13,
@@ -65,11 +64,11 @@ ENDM
 						"Each number needs to be small enough to fit inside a 32 bit register. ",
 						"After you have finished inputting the raw numbers I will display a list ",
 						"of the integers, their sum, and their average value.",0
-
   buffer		BYTE	MAXSIZE DUP(0)
   numbers		SDWORD	MAXNUM DUP(?)
   sum			SDWORD	?
   ave			SDWORD	?
+
 
 .code
 main PROC
@@ -132,7 +131,7 @@ ReadVal PROC
 
 _next_number:
 
-  mGetString 'Please enter a signed number: ', byteCount, buffer
+  mGetString "Please enter a signed number: ", byteCount, buffer
 
 _start_over:
 
@@ -201,9 +200,9 @@ _not_digit:
 _not_number:
 
   ; prompt error and enter a new value
-  mDisplayText 'ERROR: You did not enter a signed number or your number was too big.'
+  mDisplayText "ERROR: You did not enter a signed number or your number was too big."
   CALL CrLf
-  mGetString 'Please try again: ', byteCount, buffer
+  mGetString "Please try again: ", byteCount, buffer
   JMP _start_over
 
   ; if here, a number
@@ -248,7 +247,7 @@ WriteVal PROC
   MOV numcnt, 0					; set number counter
 
   CALL CrLf
-  mDisplayText 'You entered the following numbers:'
+  mDisplayText "You entered the following numbers:"
   CALL CrLf
 
 _next_number:
@@ -339,7 +338,7 @@ _parse:
   ; skip the last one
   ;---------------------
   JZ _skip
-  mDisplayText ', '
+  mDisplayText ", "
 _skip:
 
   JNZ _next_number
@@ -382,7 +381,7 @@ _loop:
   ; display sum
   ;------------
   CALL CrLf
-  mDisplayText 'The sum of these numbers is: '
+  mDisplayText "The sum of these numbers is: "
   CALL WriteInt
 
   POP ECX						; restore registers
@@ -422,7 +421,7 @@ AveVal PROC
   ; display average
   ;----------------
   CALL CrLf
-  mDisplayText 'The truncated average is: '
+  mDisplayText "The truncated average is: "
   CALL WriteInt
   CALL CrLf
 
@@ -438,7 +437,7 @@ AveVal ENDP
 
 endCredits PROC
   CALL CrLf
-  mDisplayText 'Thanks for playing!'
+  mDisplayText "Thanks for playing!"
   CALL CrLf
   RET
 endCredits ENDP
