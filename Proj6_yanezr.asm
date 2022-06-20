@@ -122,7 +122,7 @@ main PROC
   ;------------------------------------------
   ; as per instruction, ReadVal is called in
   ; a loop within main, and the numeric value
-  ; is save in array (numbers)
+  ; is saved in array (numbers)
   ;------------------------------------------
   MOV EDI, OFFSET numbers
   MOV ECX, MAXNUM
@@ -169,7 +169,7 @@ introduction PROC
   PUSH EBP
   MOV EBP, ESP
 
-  PUSH EDX
+  PUSH EDX						; preserve registers
 
   MOV EDX, [EBP+8]
   CALL WriteString
@@ -181,7 +181,7 @@ introduction PROC
   CALL CrLf
   CALL CrLf
 
-  POP EDX
+  POP EDX						; restore registers
 
   POP EBP
   RET 8
@@ -205,7 +205,7 @@ introduction ENDP
 ReadVal PROC
   LOCAL byteCount:DWORD, pow:DWORD, num:SDWORD
 
-  PUSH EAX						; preserve register
+  PUSH EAX						; preserve registers
   PUSH EBX
   PUSH ECX
   PUSH EDX
@@ -217,7 +217,9 @@ ReadVal PROC
 
 _start_over:
 
+  ;------------------------------------------------
   ; pointer at the end of string and move backwards
+  ;------------------------------------------------
   MOV ESI, OFFSET buffer
   MOV ECX, byteCount
   ADD ESI, ECX
@@ -230,10 +232,10 @@ _start_over:
   ; reset accumulator
   MOV num, 0
 
-  ;------------------------------------------
+  ;-------------------------------------------
   ; parse the string byte by byte, check that
-  ; byte is a digit and convert to ASCII
-  ;------------------------------------------
+  ; byte is a digit and convert to ASCII if so
+  ;-------------------------------------------
 _parse:
 
   ; load a byte
@@ -309,7 +311,9 @@ _continue:
   IDIV EBX
   JO _not_number
 
+  ;-------------------------
   ; store number in variable
+  ;-------------------------
   MOV [EDI], EAX
   ADD EDI, SIZEOF SDWORD
 
@@ -338,7 +342,7 @@ ReadVal ENDP
 WriteVal PROC
   LOCAL numcnt:DWORD
 
-  PUSH EAX						; preserve register
+  PUSH EAX						; preserve registers
   PUSH EBX
   PUSH ECX
   PUSH EDX
@@ -358,7 +362,7 @@ _next_number:
   ;----------------------------------------
   ; if negative, flip the sign and insert a
   ; - character at the beginning of string
-  -----------------------------------------
+  ;----------------------------------------
   MOV EAX, [ESI]
   MOV ECX, 0
   CMP EAX, 0
@@ -453,11 +457,26 @@ _skip:
   RET 4
 WriteVal ENDP
 
+;---------------------------------------------------;
+; Name: SumVal                                      ;
+;                                                   ;
+; Sum the values of an array of numbers and display ;
+;                                                   ;
+; Preconditions: none                               ;
+;                                                   ;
+; Postconditions: all used registers restored       ;
+;                                                   ;
+; Receives: [EBP+8]   array of numbers              ;
+;                                                   ;
+; Returns: [EBP+12]   sum                           ;
+;---------------------------------------------------;
 SumVal PROC
   PUSH EBP
   MOV EBP, ESP
+  PUSH ESI
+  PUSH EDI
 
-  PUSH EAX						; preserve register
+  PUSH EAX						; preserve registers
   PUSH ECX
 
   MOV ESI, [EBP+8]				; address of numbers array
@@ -488,16 +507,33 @@ _loop:
   POP ECX						; restore registers
   POP EAX
 
+  POP EDI
+  POP ESI
   POP EBP
 
   RET 8
 SumVal ENDP
 
+;---------------------------------------------------;
+; Name: AveVal                                      ;
+;                                                   ;
+; Calculate and display the average                 ;
+;                                                   ;
+; Preconditions: none                               ;
+;                                                   ;
+; Postconditions: all used registers restored       ;
+;                                                   ;
+; Receives: [EBP+8]   sum                           ;
+;                                                   ;
+; Returns: [EBP+12]   ave                           ;
+;---------------------------------------------------;
 AveVal PROC
   PUSH EBP
   MOV EBP, ESP
+  PUSH ESI
+  PUSH EDI
 
-  PUSH EAX						; preserve register
+  PUSH EAX						; preserve registers
   PUSH EBX
   PUSH EDX
 
@@ -530,12 +566,26 @@ AveVal PROC
   POP EBX
   POP EAX
 
+  POP EDI
+  POP ESI
   POP EBP
 
   RET 8
 AveVal ENDP
 
-
+;---------------------------------------------------;
+; Name: EndCredits                                  ;
+;                                                   ;
+; Display the end credits                           ;
+;                                                   ;
+; Preconditions: none                               ;
+;                                                   ;
+; Postconditions: none                              ;
+;                                                   ;
+; Receives: none                                    ;
+;                                                   ;
+; Returns: none                                     ;
+;---------------------------------------------------;
 endCredits PROC
   CALL CrLf
   mDisplayText "Thanks for playing!"
