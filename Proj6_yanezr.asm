@@ -1,7 +1,7 @@
 TITLE Sring Primitives and Macros     (Proj6_yanezr.asm)
 
 ; Author: Ricardo Yanez
-; Last Modified: 06/19/2022
+; Last Modified: 06/20/2022
 ; OSU email address: yanezr@oregonstate.edu
 ; Course number/section: CS271 Section 404
 ; Project Number: 6    Due Date: 06/26/2022
@@ -87,6 +87,7 @@ ENDM
   separator		BYTE	", ",0
   buffer		BYTE	MAXSIZE DUP(0)
   bufSize		DWORD	SIZEOF buffer
+  byteCount		DWORD	?
   number		SDWORD	?
   numbers		SDWORD	MAXNUM DUP(?)
   sum			SDWORD	?
@@ -111,6 +112,7 @@ _loop:
   PUSH OFFSET error
   PUSH OFFSET prompt2
   PUSH OFFSET prompt1
+  PUSH OFFSET byteCount
   PUSH bufSize
   PUSH OFFSET buffer
   PUSH OFFSET number
@@ -192,14 +194,15 @@ introduction ENDP
 ; Receives: [EBP+8]     address of number           ;
 ;           [EBP+12]    address of buffer           ;
 ;           [EBP+16]    bufSize                     ;
-;           [EBP+20]    address of prompt1          ;
-;           [EBP+24]    address of prompt2          ;
-;           [EBP+28]    address of error            ;
+;           [EBP+20]    address of byteCount        ;
+;           [EBP+24]    address of prompt1          ;
+;           [EBP+28]    address of prompt2          ;
+;           [EBP+32]    address of error            ;
 ;                                                   ;
 ; Returns: [EBP+8]      number                      ;
 ;---------------------------------------------------;
 ReadVal PROC
-  LOCAL byteCount:DWORD, pow:DWORD, num:SDWORD
+  LOCAL pow:DWORD, num:SDWORD
 
   PUSH EAX						; preserve registers
   PUSH EBX
@@ -207,17 +210,17 @@ ReadVal PROC
   PUSH EDX
   PUSH EDI
 
-  mGetString [EBP+20], [EBP+12], [EBP+16], byteCount
+  MOV EDI, [EBP+20]
+
+  mGetString [EBP+24], [EBP+12], [EBP+16], [EDI]
 
 _start_over:
-
-  MOV EDI, [EBP+8]				; address of number
 
   ;------------------------------------------------
   ; pointer at the end of string and move backwards
   ;------------------------------------------------
   MOV ESI, [EBP+12]				; address of buffer
-  MOV ECX, byteCount
+  MOV ECX, [EDI]                ; address of byteCount
   ADD ESI, ECX
   DEC ESI
   STD
@@ -227,6 +230,9 @@ _start_over:
 
   ; reset accumulator
   MOV num, 0
+
+  ; address of number
+  MOV EDI, [EBP+8]
 
   ;-------------------------------------------
   ; parse the string byte by byte, check that
@@ -252,6 +258,12 @@ _parse:
   ; multiply digit by power of 10 and add to number
   MUL pow
   ADD num, EAX
+
+  ;------------------------------
+  ; check if number is too big
+  ; by checking the overflow flag
+  ;------------------------------
+  JO _not_number
 
   ; increase by one power of 10 for next digit
   MOV EAX, pow
@@ -289,9 +301,10 @@ _not_digit:
   ; display error and get a new string
   ;-----------------------------------
 _not_number:
-  mDisplayString [EBP+28]
+  mDisplayString [EBP+32]
   CALL CrLf
-  mGetString [EBP+24], [EBP+12], [EBP+16], byteCount
+  MOV EDI, [EBP+20]
+  mGetString [EBP+28], [EBP+12], [EBP+16], [EDI]
   JMP _start_over
 
   ; if here, a number
@@ -301,15 +314,16 @@ _continue:
   ; check if number is too big
   ; divide by 1 and check the OV flag
   ;----------------------------------
-  MOV EAX, num
-  CDQ
-  MOV EBX, 1
-  IDIV EBX
-  JO _not_number
+;  MOV EAX, num
+;  CDQ
+;  MOV EBX, 1
+;  IDIV EBX
+;  JO _not_number
 
   ;-------------------------
   ; store number in variable
   ;-------------------------
+  MOV EAX, num
   MOV [EDI], EAX
   ADD EDI, SIZEOF SDWORD
 
@@ -319,7 +333,7 @@ _continue:
   POP EBX
   POP EAX
 
-  RET 24
+  RET 28
 ReadVal ENDP
 
 ;---------------------------------------------------;
