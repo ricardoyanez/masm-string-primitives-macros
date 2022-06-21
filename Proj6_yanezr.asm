@@ -11,10 +11,7 @@ TITLE Sring Primitives and Macros     (Proj6_yanezr.asm)
 INCLUDE Irvine32.inc
 
 MAXNUM = 10
-
-; A 32-bit sign integer has at most 10 decimal digits, add one
-; for the sign, add one for NULL termination of a string
-MAXSIZE = 12
+MAXSIZE = 25
 
 ;---------------------------------------------------;
 ; Name: mGetString                                  ;
