@@ -21,29 +21,26 @@ MAXSIZE = 12
 ;                                                   ;
 ; Display a prompt and get a user-supplied string   ;
 ;                                                   ;
-; Preconditions: do not use ECX, EDX as arguments   ;
+; Preconditions: do not use ECX, EDX or EAX as      ;
+;                arguments                          ;
 ;                                                   ;
 ; Postconditions: all used registers restored       ;
 ;                                                   ;
-; Receives: text      prompt text                   ;
-;           string    string variable               ;
-;           count     size of string                ;
+; Receives: prompt    prompt text                   ;
+;           buffer    address of string             ;
+;           size      size of string                ;
+;           count     count of characters           ;
 ;                                                   ;
-; Returns: string, size of string                   ;
+; Returns: buffer, count                            ;
 ;---------------------------------------------------;
-mGetString MACRO text, string, count
-  LOCAL prompt
-  .data
-  prompt BYTE text, 0
-  .code
+mGetString MACRO prompt, buffer, size, count
   PUSH EDX
   PUSH ECX
   ; display prompt
-  MOV EDX, OFFSET prompt
-  CALL WriteString
+  mDisplayString prompt
   ; read user-supplied string
-  MOV EDX, OFFSET string
-  MOV ECX, SIZEOF string
+  MOV EDX, buffer
+  MOV ECX, size
   CALL ReadString
   MOV count, EAX
   POP ECX
@@ -59,39 +56,14 @@ ENDM
 ;                                                   ;
 ; Postconditions: all used registers restored       ;
 ;                                                   ;
-; Receives: string    string variable               ;
+; Receives: buffer    address of string             ;
 ;                                                   ;
 ; Returns: none                                     ;
 ;---------------------------------------------------;
-mDisplayString MACRO string
+mDisplayString MACRO buffer
   PUSH EDX
   ; display string
-  MOV EDX, OFFSET string
-  CALL WriteString
-  POP EDX
-ENDM
-
-;---------------------------------------------------;
-; Name: mDisplayText                                ;
-;                                                   ;
-; Display a text                                    ;
-;                                                   ;
-; Preconditions: do not use EDX as argument         ;
-;                                                   ;
-; Postconditions: all used registers restored       ;
-;                                                   ;
-; Receives: text      text string                   ;
-;                                                   ;
-; Returns: none                                     ;
-;---------------------------------------------------;
-mDisplayText MACRO text
-  LOCAL string
-  .data
-  string BYTE text, 0
-  .code
-  PUSH EDX
-  ; display string
-  MOV EDX, OFFSET string
+  MOV EDX, buffer
   CALL WriteString
   POP EDX
 ENDM
@@ -105,7 +77,16 @@ ENDM
 						"Each number needs to be small enough to fit inside a 32 bit register. ",
 						"After you have finished inputting the raw numbers I will display a list ",
 						"of the integers, their sum, and their average value.",0
+  prompt1		BYTE	"Please enter a signed number: ",0
+  prompt2		BYTE	"Please try again: ",0
+  prompt3		BYTE	"You entered the following numbers:",0
+  prompt4		BYTE	"The sum of these numbers is: ",0
+  prompt5		BYTE	"The truncated average is: ",0
+  error			BYTE	"ERROR: You did not enter a signed number or your number was too big.",0
+  credits		BYTE	"Thanks for playing!",0
+  separator		BYTE	", ",0
   buffer		BYTE	MAXSIZE DUP(0)
+  bufSize		DWORD	SIZEOF buffer
   number		SDWORD	?
   numbers		SDWORD	MAXNUM DUP(?)
   sum			SDWORD	?
@@ -127,6 +108,11 @@ main PROC
   MOV EDI, OFFSET numbers
   MOV ECX, MAXNUM
 _loop:
+  PUSH OFFSET error
+  PUSH OFFSET prompt2
+  PUSH OFFSET prompt1
+  PUSH bufSize
+  PUSH OFFSET buffer
   PUSH OFFSET number
   CALL ReadVal
   MOV EAX, number
@@ -134,17 +120,23 @@ _loop:
   ADD EDI, SIZEOF SDWORD
   LOOP _loop
 
+  PUSH OFFSET separator
+  PUSH OFFSET prompt3
+  PUSH OFFSET buffer
   PUSH OFFSET numbers
   CALL WriteVal
 
+  PUSH OFFSET prompt4
   PUSH OFFSET sum
   PUSH OFFSET numbers
   CALL SumVal
 
+  PUSH OFFSET prompt5
   PUSH OFFSET ave
   PUSH OFFSET sum
   CALL AveVal
 
+  PUSH OFFSET credits
   CALL endCredits
 
   Invoke ExitProcess,0	; exit to operating system
@@ -197,10 +189,14 @@ introduction ENDP
 ;                                                   ;
 ; Postconditions: all used registers restored       ;
 ;                                                   ;
-; Receives: [EBP+8]   address to number variable    ;
-;                     buffer is a global variable   ;
+; Receives: [EBP+8]     address of number           ;
+;           [EBP+12]    address of buffer           ;
+;           [EBP+16]    bufSize                     ;
+;           [EBP+20]    address of prompt1          ;
+;           [EBP+24]    address of prompt2          ;
+;           [EBP+28]    address of error            ;
 ;                                                   ;
-; Returns: number     the converted number          ;
+; Returns: [EBP+8]      number                      ;
 ;---------------------------------------------------;
 ReadVal PROC
   LOCAL byteCount:DWORD, pow:DWORD, num:SDWORD
@@ -211,16 +207,16 @@ ReadVal PROC
   PUSH EDX
   PUSH EDI
 
-  MOV EDI, [EBP+8]				; address of number
-
-  mGetString "Please enter a signed number: ", buffer, byteCount
+  mGetString [EBP+20], [EBP+12], [EBP+16], byteCount
 
 _start_over:
+
+  MOV EDI, [EBP+8]				; address of number
 
   ;------------------------------------------------
   ; pointer at the end of string and move backwards
   ;------------------------------------------------
-  MOV ESI, OFFSET buffer
+  MOV ESI, [EBP+12]				; address of buffer
   MOV ECX, byteCount
   ADD ESI, ECX
   DEC ESI
@@ -293,9 +289,9 @@ _not_digit:
   ; display error and get a new string
   ;-----------------------------------
 _not_number:
-  mDisplayText "ERROR: You did not enter a signed number or your number was too big."
+  mDisplayString [EBP+28]
   CALL CrLf
-  mGetString "Please try again: ", buffer, byteCount
+  mGetString [EBP+24], [EBP+12], [EBP+16], byteCount
   JMP _start_over
 
   ; if here, a number
@@ -323,7 +319,7 @@ _continue:
   POP EBX
   POP EAX
 
-  RET 4
+  RET 24
 ReadVal ENDP
 
 ;---------------------------------------------------;
@@ -335,7 +331,10 @@ ReadVal ENDP
 ;                                                   ;
 ; Postconditions: all used registers restored       ;
 ;                                                   ;
-; Receives: [EBP+8]   array of numbers              ;
+; Receives: [EBP+8]     address of numbers          ;
+; Receives: [EBP+12]    address of buffer           ;
+; Receives: [EBP+16]    address of prompt3          ;
+; Receives: [EBP+20]    address of separator        ;
 ;                                                   ;
 ; Returns: none                                     ;
 ;---------------------------------------------------;
@@ -352,12 +351,12 @@ WriteVal PROC
   MOV numcnt, 0					; set number counter
 
   CALL CrLf
-  mDisplayText "You entered the following numbers:"
+  mDisplayString [EBP+16]
   CALL CrLf
 
 _next_number:
 
-  MOV EDI, OFFSET buffer
+  MOV EDI, [EBP+12]				; address of buffer
 
   ;----------------------------------------
   ; if negative, flip the sign and insert a
@@ -429,7 +428,7 @@ _parse:
   CMP EAX, 0
   JNZ _parse
 
-  mDisplayString buffer
+  mDisplayString [EBP+12]
 
   ; point to next element
   ADD ESI, SIZEOF SDWORD
@@ -443,7 +442,7 @@ _parse:
   ; skip the last one
   ;---------------------
   JZ _skip
-  mDisplayText ", "
+  mDisplayString [EBP+20]
 _skip:
 
   JNZ _next_number
@@ -454,7 +453,7 @@ _skip:
   POP EBX
   POP EAX
 
-  RET 4
+  RET 16
 WriteVal ENDP
 
 ;---------------------------------------------------;
@@ -466,9 +465,11 @@ WriteVal ENDP
 ;                                                   ;
 ; Postconditions: all used registers restored       ;
 ;                                                   ;
-; Receives: [EBP+8]   array of numbers              ;
+; Receives: [EBP+8]     address of numbers          ;
+;           [EBP+12]    address of sum              ;
+;           [EBP+16]    address of prompt4          ;
 ;                                                   ;
-; Returns: [EBP+12]   sum                           ;
+; Returns: [EBP+12]     sum                         ;
 ;---------------------------------------------------;
 SumVal PROC
   PUSH EBP
@@ -501,7 +502,7 @@ _loop:
   ; display sum
   ;------------
   CALL CrLf
-  mDisplayText "The sum of these numbers is: "
+  mDisplayString [EBP+16]
   CALL WriteInt
 
   POP ECX						; restore registers
@@ -511,7 +512,7 @@ _loop:
   POP ESI
   POP EBP
 
-  RET 8
+  RET 12
 SumVal ENDP
 
 ;---------------------------------------------------;
@@ -523,9 +524,11 @@ SumVal ENDP
 ;                                                   ;
 ; Postconditions: all used registers restored       ;
 ;                                                   ;
-; Receives: [EBP+8]   sum                           ;
+; Receives: [EBP+8]     address of sum              ;
+;           [EBP+12]    address of ave              ;
+;           [EBP+16]    address of prompt5          ;
 ;                                                   ;
-; Returns: [EBP+12]   ave                           ;
+; Returns: [EBP+12]     ave                         ;
 ;---------------------------------------------------;
 AveVal PROC
   PUSH EBP
@@ -558,7 +561,7 @@ AveVal PROC
   ; display average
   ;----------------
   CALL CrLf
-  mDisplayText "The truncated average is: "
+  mDisplayString [EBP+16]
   CALL WriteInt
   CALL CrLf
 
@@ -570,7 +573,7 @@ AveVal PROC
   POP ESI
   POP EBP
 
-  RET 8
+  RET 12
 AveVal ENDP
 
 ;---------------------------------------------------;
@@ -582,15 +585,21 @@ AveVal ENDP
 ;                                                   ;
 ; Postconditions: none                              ;
 ;                                                   ;
-; Receives: none                                    ;
+; Receives: [EBP+8]     address of credits          ;
 ;                                                   ;
 ; Returns: none                                     ;
 ;---------------------------------------------------;
 endCredits PROC
+  PUSH EBP
+  MOV EBP, ESP
+
   CALL CrLf
-  mDisplayText "Thanks for playing!"
+  mDisplayString [EBP+8]
   CALL CrLf
-  RET
+
+  POP EBP
+
+  RET 4
 endCredits ENDP
 
 END main
