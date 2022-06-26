@@ -307,16 +307,6 @@ _not_number:
   ; if here, a number
 _continue:
 
-  ;----------------------------------
-  ; check if number is too big
-  ; divide by 1 and check the OV flag
-  ;----------------------------------
-;  MOV EAX, num
-;  CDQ
-;  MOV EBX, 1
-;  IDIV EBX
-;  JO _not_number
-
   ;-------------------------
   ; store number in variable
   ;-------------------------
